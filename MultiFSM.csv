@@ -1,0 +1,22 @@
+Inputs,Current State,Next State,Output
+Op(6h),CS,NS,Out_R(4d)
+x,S0,S1,0
+0,S1,S6,1
+2,S1,S11,1
+4,S1,S8,1
+5,S1,S12,1
+8,S1,S9,1
+23,S1,S2,1
+2b,S1,S2,1
+23,S2,S3,2
+2b,S2,S5,2
+x,S3,S4,3
+x,S4,S0,4
+x,S5,S0,5
+x,S6,S7,6
+x,S7,S0,7
+x,S8,S0,8
+x,S9,S10,9
+x,S10,S0,10
+x,S11,S0,11
+x,S12,S0,12
