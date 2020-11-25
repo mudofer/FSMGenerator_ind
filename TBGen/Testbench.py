@@ -20,6 +20,7 @@ class Testbench:
         self.radix = "dec"
         self.types = {"C":0,"R":0,"d":0,"i":0,"s":0, "c":0, "r":0} #Stores how many bits of every input type there is
         self.Auto = True
+        self.FSM = False
 
     #Prompts for valid file name and assigns file text to string
     def getFile(self):
@@ -99,7 +100,6 @@ class Testbench:
                 ran=["","0","0",""]
                 
             #If it's the module, get name
-            print(match.group(2) + names[0])
             if (match.group(2).replace(' ','') == "module"): self.module_name = names[0]
             else:
                 #Else, check if there are operations in the range, if so, calculate them and get vinteger values
@@ -125,21 +125,29 @@ class Testbench:
             match = re.search(pattern, self.designCode)
             self.designCode = re.sub(pattern, "", self.designCode, 1)
 
-        #Ask for automatic translation
-        self.Auto=input("\nDo you want a fully automated translation?(Y,n)\n"
-        "If so, the program will ask if clock and reset signals are correct\n"
-        "and go through all signal combinations for the others, if the cycles number in this case is bigger than 16, for cycles will be used\n"
-        "random values will be used instead\n")
-        if(self.Auto=="N" or self.Auto=="n"): self.Auto = False
-        else: self.Auto = True
+        # Ask if the design is a Finite State Machine
+        self.FSM = input("\nIs the design a Finite State Machine? (Y,n)\n")
+        if(self.FSM == "N" or self.FSM == "n"): self.FSM = False
+        else: self.FSM = True
+        
+        # If the design is not an FSM (therefore it is a generic TOP module),
+        # ask for automatic translation
+        if (not self.FSM):
+            self.Auto=input("\nDo you want a fully automated translation?(Y,n)\n"
+            "If so, the program will ask if clock and reset signals are correct\n"
+            "and go through all signal combinations for the others, if the cycles number in this case is bigger than 16, for cycles will be used\n"
+            "random values will be used instead\n")
+            if(self.Auto=="N" or self.Auto=="n"): self.Auto = False
+            else: self.Auto = True
 
         #Ask for values and steps of inputs
         if (not self.Auto): print("\nEnter the initial value and the steps for the entries listed below separated by an enter.\n"
             "(The default values ​​will be a random numbering and steps of 1).\n")
+
         for e in data["input"]:
             e.append(1)
             e[3]=""
-            #heck size of signal for clocks and resets
+            #Check size of signal for clocks and resets
             if (e[1]==e[2]):
                 #If c,l,k detected, ask if correct
                 if (re.search(r"\w*[cC][lL]\w*[kK]\w*",e[0]) and self.clock == None):
@@ -214,10 +222,10 @@ class Testbench:
                 if(self.time>1000): raise ArithmeticError
             except ArithmeticError: print("Value too big, using default: 10\n")
             except: print("Value not understood, using default: 10\n")
-            finally: self.time = 10
 
-        #Ask for radix
-        self.radix = input("Choose the test vectors radix ('bin', 'dec' or 'hex')\n")
+        # If the Testbench is for a generic TOP module, ask for the radix
+        if (not self.FSM):
+            self.radix = input("Choose the test vectors radix ('bin', 'dec' or 'hex')\n")
 
     def writeTB(self):
 
@@ -288,24 +296,30 @@ class Testbench:
         if (self.reset != None):
             textTB += "\n\t\t#2\n\t\t//Deactivating reset\n"
             textTB += f"\t\t{self.reset.namePort}_TB = ~ {self.reset.namePort}_TB;\n"
-        
-        #Print number of iterations
-        textTB += f"\n\t\t//The program will iterate {self.time} times\n"
 
-        #Check if combinational mode is used
-        if (self.types["C"]==0):
-            for times in range(self.time):
-                textTB += f"\n\t\t//Iteration: {times+1}\n\t\t#1\n"
-                for i in self.inputs:
-                    #If combinational mode not used, change value according to value type and print it
-                    i.chValue()
-                    textTB += f"\t\t{i.printValue(self.radix)};\n"
-            textTB += f"\n\t\t//Ending iteration\n\t\t#1"
-        else:
-                #If combinational mode enabled, use recursive function
-                textTB += f"\n\t\t//Iteration: 1\n\t\t#1\n"
-                textTB += self.recuFun()
+        # If the Testbench is for a generic TOP module --> begin stimuli creation
+        # If the Testbench is for an FSM --> Testbench shall be implicit FSM
+        if (not self.FSM):        
+            #Print number of iterations
+            textTB += f"\n\t\t//The program will iterate {self.time} times\n"
+
+            #Check if combinational mode is used
+            if (self.types["C"]==0):
+                for times in range(self.time):
+                    textTB += f"\n\t\t//Iteration: {times+1}\n\t\t#1\n"
+                    for i in self.inputs:
+                        #If combinational mode not used, change value according to value type and print it
+                        i.chValue()
+                        textTB += f"\t\t{i.printValue(self.radix)};\n"
                 textTB += f"\n\t\t//Ending iteration\n\t\t#1"
+            else:
+                    #If combinational mode enabled, use recursive function
+                    textTB += f"\n\t\t//Iteration: 1\n\t\t#1\n"
+                    textTB += self.recuFun()
+                    textTB += f"\n\t\t//Ending iteration\n\t\t#1"
+        else:
+            textTB += ("\n\t\t//FSM-specific stimuli go here\n"
+                      f"\n\t\t#{self.time}")
 
         #Finish testbench code
         textTB += "\n\t\t$finish;\n\tend\nendmodule"
@@ -341,7 +355,7 @@ class Testbench:
         f.close()
         print(f"\n{self.module_name}_testbench.sv file has been created successfully")
 
-    #Function to give an easy to read tree ofthe elements in the translation
+    #Function to give an easy to read tree of the elements in the translation
     def print(self):
         print(f"\nModule: {self.module_name}\n|\n|->Inputs")
         for i in self.inputs:
