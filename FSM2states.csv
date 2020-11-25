@@ -1,0 +1,4 @@
+Inputs,Current State,Next State,Output
+,CS,NS,Y(1d)
+x,S0,S1,1
+x,S1,S0,0

@@ -84,10 +84,14 @@ def getFSMHead(dic, name, input_list, output_list):
     delimiter = ', '
     keys_string = delimiter.join(keys_list)
 
-    # Create the states as a new variable of type statetype, using enum. Then, create the State Register always block
-    FSMHead += (");\n\n"
-            f"  typedef enum reg [{required_state_bits-1}:0] {{{keys_string}}} statetype;\n"
-            f"  statetype state, nextstate;\n\n"    #Should be "  statetype [{required_state_bits-1}:0] state, nextstate;", but works in EPWave
+    # Create the states as a new variable of type statetype, using enum.
+    # Then, create the State Register always block
+    FSMHead += ");\n\n  typedef enum reg "
+    # If the statetype is more than 1 bit, specify the bus width
+    if (required_state_bits > 1):
+        FSMHead += f"[{required_state_bits-1}:0]"
+    FSMHead += (f"{{{keys_string}}} statetype;\n"
+            f"  statetype state, nextstate;\n\n"
                 "  //State register\n"
                 "  always@ (posedge clock or posedge reset)\n"
             f"    if (reset) state <= {keys_list[0]};\n"
