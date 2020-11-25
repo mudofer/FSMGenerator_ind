@@ -89,7 +89,7 @@ def getFSMHead(dic, name, input_list, output_list):
     FSMHead += ");\n\n  typedef enum reg "
     # If the statetype is more than 1 bit, specify the bus width
     if (required_state_bits > 1):
-        FSMHead += f"[{required_state_bits-1}:0]"
+        FSMHead += f"[{required_state_bits-1}:0] "
     FSMHead += (f"{{{keys_string}}} statetype;\n"
             f"  statetype state, nextstate;\n\n"
                 "  //State register\n"

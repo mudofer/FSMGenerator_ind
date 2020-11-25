@@ -130,6 +130,9 @@ def getFSMData(path):
         for row in reader:
             i += 1
 
+            # Skip if 'row' list is empty (like in an empty row from the STT)
+            if not row:
+                continue
             # Get inputs and outputs values and split them into their list
             tempIn = row[0].split("|")
             tempOut = row[3].split("|")
